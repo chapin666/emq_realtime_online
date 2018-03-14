@@ -16,17 +16,80 @@
 
 -module(emq_plugin_template_sup).
 
--behaviour(supervisor).
+-behaviour(gen_server).
+
+-import(proplists, [get_value/2, get_value/3]).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, stop/0, publish/2]).
 
-%% Supervisor callbacks
--export([init/1]).
+%% gen_server Function Exports
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 
+
+-record(state, {tick}).
+
+-define(ONLINE_TAB, mqtt_online).
+
+-define(SERVER, ?MODULE).
+
+
+%% @doc Start stats server
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
+stop() ->
+    gen_server:call(?MODULE, stop).
+
+
+%%--------------------------------------------------------------------
+%% gen_server callbacks
+%%--------------------------------------------------------------------
 init([]) ->
-    {ok, { {one_for_one, 0, 1}, []} }.
+    emqttd_time:seed(),
+    ets:new(?ONLINE_TAB, [set, public, named_table, {write_concurrency, true}]),
+    {ok, #state{tick = emqttd_broker:start_tick(tick)}, hibernate}.
+
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};    
+handle_call(_Request, _From, State) ->
+    {reply, error, State}.
+
+%% atomic
+handle_cast({setstats, Stat, MaxStat, Val}, State) ->
+    MaxVal = ets:lookup_element(?ONLINE_TAB, MaxStat, 2),
+    if
+        Val > MaxVal ->
+            ets:update_element(?ONLINE_TAB, MaxStat, {2, Val});
+        true -> ok
+    end,
+    ets:update_element(?ONLINE_TAB, Stat, {2, Val}),
+    {noreply, State};
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+%% Interval Tick.
+handle_info(tick, State) ->
+    [publish(Stat, Val) || {Stat, Val} <- ets:tab2list(?ONLINE_TAB)],
+    {noreply, State, hibernate};
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, #state{tick = TRef}) ->
+    emqttd_broker:stop_tick(TRef).
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+%%--------------------------------------------------------------------
+%% Internal functions
+%%--------------------------------------------------------------------
+
+publish(Topic, Val) ->
+    ClientId = online,
+    Payload = list_to_binary(io_lib:format("{\"typ\": \"online\", \"value\": \"~w\"}", [Val])),
+    emqttd_mgmt:publish({ClientId, Topic, Payload, 0, false}).
 
