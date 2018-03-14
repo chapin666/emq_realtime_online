@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emq_cli_demo).
+-module(emq_realtime_online_cli).
 
 -include_lib("emqttd/include/emqttd_cli.hrl").
 
