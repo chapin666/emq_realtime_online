@@ -1,28 +1,31 @@
 
-emq-plugin-template
+emq-realtime-online plugin
 ===================
 
-This is a template plugin for the EMQ broker.
+This is a realtime-online plugin for the EMQ broker.
 
-Plugin Config
+config & compile
 -------------
-
-Each plugin should have a 'etc/{plugin_name}.conf|config' file to store application config.
-
-Authentication and ACL
-----------------------
-
+1. clone emq-relx 项目:
 ```
-emqttd_access_control:register_mod(auth, ?MODULE, Env).
-emqttd_access_control:register_mod(acl, ?MODULE, Env).
+git clone https://github.com/emqtt/emq-relx.git
 ```
 
-Plugin and Hooks
------------------
+2. Makefile 增加 DEPS:
+```
+DEPS += emq_realtime_online
+dep_emq_realtime_online = git https://github.com/chapin666/emq_realtime_online
+```
 
-[Plugin Design](http://docs.emqtt.com/en/latest/design.html#plugin-design)
+3. relx.config 中 release 段落添加:
+```
+{emq_realtime_online, load},
+```
 
-[Hooks Design](http://docs.emqtt.com/en/latest/design.html#hooks-design)
+4. 编译
+```
+make
+```
 
 License
 -------
