@@ -51,6 +51,5 @@ on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
 
 %% Called when the plugin application stop
 unload() ->
-    emqttd:unhook('client.subscribe', fun ?MODULE:on_client_subscribe/4),
-    emqttd:unhook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/4).
+    ets:delete(ONLINE_TAB).
 
