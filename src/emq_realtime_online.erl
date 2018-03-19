@@ -51,5 +51,5 @@ on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
 
 %% Called when the plugin application stop
 unload() ->
-    ets:delete(ONLINE_TAB).
+    ets:delete(?ONLINE_TAB).
 
