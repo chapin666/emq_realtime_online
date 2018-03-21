@@ -1,0 +1,5 @@
+
+{mapping, "realtime.online.interval", "realtime_online.interval", [
+    {default, 3000},
+    {datatype, integer}
+]}.

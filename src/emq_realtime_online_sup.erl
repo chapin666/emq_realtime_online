@@ -21,7 +21,7 @@
 -import(proplists, [get_value/2, get_value/3]).
 
 %% API
--export([start_link/0, stop/0, publish/2]).
+-export([start_link/0, stop/0, publish/2, start_tick/1, stop_tick/1]).
 
 %% gen_server Function Exports
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -43,13 +43,20 @@ stop() ->
     gen_server:call(?MODULE, stop).
 
 
+start_tick(Msg) when Interval > 0 ->
+    {ok, TRef} = timer:send_interval(emqttd:env(interval, 3000), Msg), TRef.
+
+stop_tick(TRef) ->
+        timer:cancel(TRef).
+
+
 %%--------------------------------------------------------------------
 %% gen_server callbacks
 %%--------------------------------------------------------------------
 init([]) ->
     emqttd_time:seed(),
     ets:new(?ONLINE_TAB, [set, public, named_table, {write_concurrency, true}]),
-    {ok, #state{tick = emqttd_broker:start_tick(tick)}, hibernate}.
+    {ok, #state{tick = start_tick(tick)}, hibernate}.
 
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};    
@@ -58,13 +65,6 @@ handle_call(_Request, _From, State) ->
 
 %% atomic
 handle_cast({setstats, Stat, MaxStat, Val}, State) ->
-    MaxVal = ets:lookup_element(?ONLINE_TAB, MaxStat, 2),
-    if
-        Val > MaxVal ->
-            ets:update_element(?ONLINE_TAB, MaxStat, {2, Val});
-        true -> ok
-    end,
-    ets:update_element(?ONLINE_TAB, Stat, {2, Val}),
     {noreply, State};
 
 handle_cast(_Msg, State) ->
@@ -79,7 +79,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, #state{tick = TRef}) ->
-    emqttd_broker:stop_tick(TRef).
+    stop_tick(TRef).
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
