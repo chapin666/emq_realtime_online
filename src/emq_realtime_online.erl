@@ -36,16 +36,16 @@ load(Env) ->
 on_client_subscribe(ClientId, Username, TopicTable, _Env) ->
     [H | _] = proplists:get_keys(TopicTable),
     case ets:lookup(?ONLINE_TAB, H) of
-        [{_, Val}] -> io:format("subscribe: Val=~p ~n", [Val]), ets:update_element(?ONLINE_TAB, H, {2, Val+1});
-        [] -> io:format("insert 1"), ets:insert(?ONLINE_TAB, {H, 1})
+        [{_, Val}] -> ets:update_element(?ONLINE_TAB, H, {2, Val+1});
+        [] -> ets:insert(?ONLINE_TAB, {H, 1})
     end,
     {ok, TopicTable}.
     
 on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
     [H | _] = proplists:get_keys(TopicTable),
     case ets:lookup(?ONLINE_TAB, H) of
-        [{_, 1}] -> io:format("delete ~n"), ets:delete(?ONLINE_TAB, H);
-        [{_, Val}] -> io:format("unsubscribe: Val=~p ~n", [Val]), ets:update_element(?ONLINE_TAB, H, {2, Val-1});
+        [{_, 1}] -> ets:delete(?ONLINE_TAB, H);
+        [{_, Val}] -> ets:update_element(?ONLINE_TAB, H, {2, Val-1});
         [] -> ets:delete(?ONLINE_TAB, H)
     end,
     {ok, TopicTable}.
