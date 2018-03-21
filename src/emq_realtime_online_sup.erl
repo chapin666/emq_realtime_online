@@ -43,7 +43,7 @@ stop() ->
     gen_server:call(?MODULE, stop).
 
 
-start_tick(Msg) when Interval > 0 ->
+start_tick(Msg)
     {ok, TRef} = timer:send_interval(emqttd:env(interval, 3000), Msg), TRef.
 
 stop_tick(TRef) ->
