@@ -45,7 +45,7 @@ on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
     [H | _] = proplists:get_keys(TopicTable),
     case ets:lookup(?ONLINE_TAB, H) of
         [{_, Val}] -> io:format("unsubscribe: Val=~p ~n", [Val]), ets:update_element(?ONLINE_TAB, H, {2, Val-1});
-        [] -> ets:delete(?ONLINE_TAB, H)
+        [{_, 0}] -> io:format("delete ~n"), ets:delete(?ONLINE_TAB, H)
     end,
     {ok, TopicTable}.
 
